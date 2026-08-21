@@ -5,10 +5,13 @@ import type {
   ExtensionRequest,
   Gym,
   Session,
+  UpdateStatus,
   WatchedGymSummary,
 } from './types';
 
 const { API_BASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY } = RAID_NOTIFIER_CONFIG;
+
+const GITHUB_REPO = 'wokcito/raid-notifier-extension';
 
 let watchedGymIds: Set<string> | null = null;
 
@@ -112,6 +115,38 @@ async function signup(email: string, password: string): Promise<ApiResult<{ need
   return { ok: true, data: { needsConfirmation: false } };
 }
 
+function parseVersion(raw: string): [number, number, number] {
+  const clean = raw.replace(/^v/, '').split('-')[0];
+  const parts = clean.split('.').map((n) => parseInt(n, 10) || 0);
+  return [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0];
+}
+
+function isNewer(a: [number, number, number], b: [number, number, number]): boolean {
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) return a[i] > b[i];
+  }
+  return false;
+}
+
+async function checkForUpdate(): Promise<ApiResult<UpdateStatus>> {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+    if (!res.ok) {
+      return { ok: false, error: `${res.status} ${res.statusText}` };
+    }
+    const data = await res.json();
+    const latestVersion: string = data.tag_name ?? '';
+    const releaseUrl: string = data.html_url ?? `https://github.com/${GITHUB_REPO}/releases`;
+    const current = parseVersion(chrome.runtime.getManifest().version);
+    const latest = parseVersion(latestVersion);
+    const updateAvailable = isNewer(latest, current);
+    const breaking = updateAvailable && latest[0] > current[0];
+    return { ok: true, data: { updateAvailable, breaking, latestVersion, releaseUrl } };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 async function logout(): Promise<void> {
   await chrome.storage.local.remove(['session', 'watchedGymIds', 'isPremium', 'linkedChannels']);
   watchedGymIds = null;
@@ -182,6 +217,10 @@ chrome.runtime.onMessage.addListener((message: ExtensionRequest, _sender, sendRe
               body: JSON.stringify(message.gym),
             }),
           );
+          break;
+        }
+        case 'CHECK_FOR_UPDATE': {
+          sendResponse(await checkForUpdate());
           break;
         }
         default: {

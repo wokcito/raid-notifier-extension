@@ -29,6 +29,13 @@ export interface TelegramLinkCode {
   deepLink: string;
 }
 
+export interface UpdateStatus {
+  updateAvailable: boolean;
+  breaking: boolean;
+  latestVersion: string;
+  releaseUrl: string;
+}
+
 export interface RaidNotifierConfig {
   API_BASE_URL: string;
   SUPABASE_URL: string;
@@ -45,7 +52,8 @@ export type ExtensionRequest =
   | { type: 'CREATE_TELEGRAM_LINK_CODE' }
   | { type: 'WATCH_GYM'; gym: Gym }
   | { type: 'UNWATCH_GYM'; scopelyGymId: string }
-  | { type: 'DISCOVER_GYM'; gym: Gym };
+  | { type: 'DISCOVER_GYM'; gym: Gym }
+  | { type: 'CHECK_FOR_UPDATE' };
 
 export type RequestType = ExtensionRequest['type'];
 
@@ -68,4 +76,5 @@ export interface RequestResponseMap {
   WATCH_GYM: ApiResult<unknown>;
   UNWATCH_GYM: ApiResult<unknown>;
   DISCOVER_GYM: ApiResult<undefined>;
+  CHECK_FOR_UPDATE: ApiResult<UpdateStatus>;
 }

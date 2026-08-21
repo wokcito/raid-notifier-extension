@@ -134,10 +134,43 @@
         color: #2563eb;
         text-decoration: none;
       }
+      #update-banner {
+        display: none;
+        margin-bottom: 10px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      #update-banner a {
+        color: inherit;
+        font-weight: 600;
+      }
+      #update-banner.info {
+        display: block;
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      #update-banner.breaking {
+        display: block;
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      #footer {
+        margin-top: 12px;
+        text-align: center;
+        font-size: 11px;
+      }
+      #footer a {
+        color: #999;
+        text-decoration: none;
+      }
     </style>
   </head>
   <body>
     <h1><img src="icons/icon32.png" alt="" /> Raid Notifier <span id="version"></span></h1>
+
+    <div id="update-banner"></div>
 
     <div id="login-form">
       <label for="email">Email</label>
@@ -165,6 +198,8 @@
     </div>
 
     <div id="status"></div>
+
+    <div id="footer"><a href="https://github.com/wokcito/raid-notifier-extension" target="_blank">GitHub</a></div>
 
     <script src="popup.js"></script>
   </body>

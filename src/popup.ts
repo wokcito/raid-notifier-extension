@@ -20,6 +20,9 @@ const versionEl = el<HTMLSpanElement>('version');
 versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
 const authToggleTextEl = el<HTMLSpanElement>('auth-toggle-text');
 const toggleModeEl = el<HTMLAnchorElement>('toggle-mode');
+const updateBannerEl = el<HTMLDivElement>('update-banner');
+const emailInputEl = el<HTMLInputElement>('email');
+const passwordInputEl = el<HTMLInputElement>('password');
 
 const MESSAGE_TIMEOUT_MS = 6000;
 function sendMessageSafe<T extends ExtensionRequest>(message: T): Promise<RequestResponseMap[T['type']]> {
@@ -147,8 +150,8 @@ function showLoggedOut(): void {
 }
 
 loginBtnEl.addEventListener('click', async () => {
-  const email = el<HTMLInputElement>('email').value.trim();
-  const password = el<HTMLInputElement>('password').value;
+  const email = emailInputEl.value.trim();
+  const password = passwordInputEl.value;
   if (!email || !password) {
     setStatus('Enter your email and password.');
     return;
@@ -203,4 +206,37 @@ chrome.storage.onChanged.addListener((changes, area) => {
     if (!res.ok) setStatus(res.error);
     showLoggedOut();
   }
+})();
+
+(async () => {
+  const res = await sendMessageSafe({ type: 'CHECK_FOR_UPDATE' });
+  if (!res.ok) {
+    console.error('[raid-notifier] update check failed:', res.error);
+    return;
+  }
+  const { updateAvailable, breaking, latestVersion, releaseUrl } = res.data;
+  if (!updateAvailable) return;
+
+  updateBannerEl.textContent = '';
+  const text = document.createElement('span');
+  const link = document.createElement('a');
+  link.href = releaseUrl;
+  link.target = '_blank';
+  link.textContent = 'see release';
+
+  if (breaking) {
+    text.textContent = `${latestVersion} is out with breaking changes. Update before logging in — `;
+    updateBannerEl.className = 'breaking';
+    loginBtnEl.disabled = true;
+    emailInputEl.disabled = true;
+    passwordInputEl.disabled = true;
+    toggleModeEl.style.pointerEvents = 'none';
+    toggleModeEl.style.opacity = '0.5';
+  } else {
+    text.textContent = `${latestVersion} available — `;
+    updateBannerEl.className = 'info';
+  }
+
+  updateBannerEl.appendChild(text);
+  updateBannerEl.appendChild(link);
 })();

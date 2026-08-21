@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Raid Notifier",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Raid Notifier extension, it allows you to get notified when a raid is available in Pokemon Go.",
   "icons": {
     "16": "icons/icon16.png",
@@ -13,6 +13,7 @@
   "host_permissions": [
     "*://pokemongo.com/*",
     "http://localhost/*",
+    "https://api.github.com/*",
     "__API_HOST_PERMISSION__",
     "__SUPABASE_HOST_PERMISSION__"
   ],
