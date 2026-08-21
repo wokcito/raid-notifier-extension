@@ -225,13 +225,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
   link.textContent = 'see release';
 
   if (breaking) {
-    text.textContent = `${latestVersion} is out with breaking changes. Update before logging in — `;
+    text.textContent = `${latestVersion} is out with breaking changes. Some things may not work correctly until you update — `;
     updateBannerEl.className = 'breaking';
-    loginBtnEl.disabled = true;
-    emailInputEl.disabled = true;
-    passwordInputEl.disabled = true;
-    toggleModeEl.style.pointerEvents = 'none';
-    toggleModeEl.style.opacity = '0.5';
   } else {
     text.textContent = `${latestVersion} available — `;
     updateBannerEl.className = 'info';

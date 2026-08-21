@@ -128,7 +128,13 @@ function isNewer(a: [number, number, number], b: [number, number, number]): bool
   return false;
 }
 
+let updateStatusCache: { data: UpdateStatus; fetchedAt: number } | null = null;
+const UPDATE_CHECK_CACHE_MS = 5 * 60 * 1000;
+
 async function checkForUpdate(): Promise<ApiResult<UpdateStatus>> {
+  if (updateStatusCache && Date.now() - updateStatusCache.fetchedAt < UPDATE_CHECK_CACHE_MS) {
+    return { ok: true, data: updateStatusCache.data };
+  }
   try {
     const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
     if (!res.ok) {
@@ -141,7 +147,9 @@ async function checkForUpdate(): Promise<ApiResult<UpdateStatus>> {
     const latest = parseVersion(latestVersion);
     const updateAvailable = isNewer(latest, current);
     const breaking = updateAvailable && latest[0] > current[0];
-    return { ok: true, data: { updateAvailable, breaking, latestVersion, releaseUrl } };
+    const status: UpdateStatus = { updateAvailable, breaking, latestVersion, releaseUrl };
+    updateStatusCache = { data: status, fetchedAt: Date.now() };
+    return { ok: true, data: status };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

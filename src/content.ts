@@ -86,17 +86,23 @@ declare global {
     if (!btn) return;
     if (pendingGymId === currentGym.scopelyGymId) {
       btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
       btn.textContent = '…';
       return;
     }
     const watched = watchedSet.has(currentGym.scopelyGymId);
     if (isPremium === false && !watched && watchedSet.size >= FREE_TIER_WATCH_LIMIT) {
       btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
       btn.textContent = `Free limit (${FREE_TIER_WATCH_LIMIT}) reached`;
       btn.style.background = '#4b5563';
       return;
     }
     btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
     setButtonState(btn, watched);
   }
 
