@@ -1,0 +1,18 @@
+{
+  "name": "raid-notifier-extension",
+  "private": true,
+  "type": "module",
+  "author": "Maximiliano Kazanski",
+  "license": "MIT",
+  "description": "Raid Notifier extension, it allows you to get notified when a raid is available in Pokemon Go.",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.2.6",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  }
+}

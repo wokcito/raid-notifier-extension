@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Raid Notifier</title>
+    <style>
+      body {
+        width: 300px;
+        font-family: system-ui, sans-serif;
+        font-size: 13px;
+        padding: 14px;
+        color: #1a1a1a;
+      }
+      h1 {
+        font-size: 14px;
+        margin: 0 0 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      h1 img {
+        width: 20px;
+        height: 20px;
+      }
+      #version {
+        font-weight: normal;
+        color: #999;
+        font-size: 11px;
+        margin-left: auto;
+      }
+      label {
+        display: block;
+        margin-bottom: 4px;
+        color: #555;
+      }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        width: 100%;
+        padding: 8px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        background: #2563eb;
+        color: white;
+      }
+      #logout {
+        background: #eee;
+        color: #1a1a1a;
+        margin-top: 8px;
+      }
+      #status {
+        margin-top: 8px;
+        white-space: pre-wrap;
+        color: #b91c1c;
+      }
+      #logged-in {
+        display: none;
+      }
+      #account {
+        color: #555;
+        margin-bottom: 10px;
+      }
+      #watched-list {
+        list-style: none;
+        margin: 0 0 10px;
+        padding: 0;
+        max-height: 220px;
+        overflow-y: auto;
+      }
+      #watched-list li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid #eee;
+      }
+      #watched-list button {
+        width: auto;
+        padding: 3px 8px;
+        background: #fee2e2;
+        color: #b91c1c;
+        font-size: 12px;
+      }
+      #watched-empty {
+        color: #888;
+        padding: 8px 0;
+      }
+      #notifications {
+        margin: 12px 0;
+        padding: 10px;
+        border: 1px solid #eee;
+        border-radius: 6px;
+      }
+      #notifications strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+      #telegram-linked {
+        color: #16a34a;
+        display: none;
+      }
+      #telegram-link-btn {
+        display: inline-block;
+        width: auto;
+        padding: 6px 10px;
+        font-size: 12px;
+        text-decoration: none;
+        text-align: center;
+        background: #2563eb;
+        color: white;
+        border-radius: 4px;
+      }
+      #telegram-hint {
+        display: none;
+        color: #888;
+        font-size: 11px;
+        margin-top: 6px;
+      }
+      #auth-toggle {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #555;
+        text-align: center;
+      }
+      #auth-toggle a {
+        color: #2563eb;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1><img src="icons/icon32.png" alt="" /> Raid Notifier <span id="version"></span></h1>
+
+    <div id="login-form">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" />
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" />
+      <button id="login">Log in</button>
+      <div id="auth-toggle"><span id="auth-toggle-text">Don't have an account? </span><a href="#" id="toggle-mode">Sign up</a></div>
+    </div>
+
+    <div id="logged-in">
+      <div id="account"></div>
+      <strong>Gyms you're watching</strong>
+      <ul id="watched-list"></ul>
+      <div id="watched-empty" style="display: none">You're not watching any gyms yet.</div>
+
+      <div id="notifications">
+        <strong>Notifications</strong>
+        <span id="telegram-linked">✅ Telegram linked</span>
+        <a id="telegram-link-btn" href="#" target="_blank" style="display: none">Link Telegram</a>
+        <div id="telegram-hint">After linking in Telegram, reopen this extension to confirm it.</div>
+      </div>
+
+      <button id="logout">Log out</button>
+    </div>
+
+    <div id="status"></div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
