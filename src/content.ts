@@ -17,6 +17,10 @@ declare global {
 
   const FREE_TIER_WATCH_LIMIT = 3;
 
+  function hasLocation(gym: Gym): boolean {
+    return typeof gym.latitude === 'number' && typeof gym.longitude === 'number';
+  }
+
   let panel: HTMLDivElement | null = null;
   let currentGym: Gym | null = null;
   let pendingGymId: string | null = null;
@@ -89,6 +93,14 @@ declare global {
       btn.style.opacity = '0.5';
       btn.style.cursor = 'not-allowed';
       btn.textContent = '…';
+      return;
+    }
+    if (!hasLocation(currentGym)) {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+      btn.textContent = '📍 Waiting for location…';
+      btn.style.background = '#4b5563';
       return;
     }
     const watched = watchedSet.has(currentGym.scopelyGymId);
@@ -194,6 +206,7 @@ declare global {
 
   async function onWatchButtonClick(): Promise<void> {
     if (!currentGym || pendingGymId) return;
+    if (!hasLocation(currentGym)) return;
     const gym = currentGym;
     const wasWatched = watchedSet.has(gym.scopelyGymId);
     if (isPremium === false && !wasWatched && watchedSet.size >= FREE_TIER_WATCH_LIMIT) return;
@@ -238,7 +251,7 @@ declare global {
       if (hasSession === null) await checkSession();
       if (!hasSession) return;
 
-      if (gym.name && !discoveredGymIds.has(gym.scopelyGymId)) {
+      if (gym.name && hasLocation(gym) && !discoveredGymIds.has(gym.scopelyGymId)) {
         discoveredGymIds.add(gym.scopelyGymId);
         sendMessageSafe({ type: 'DISCOVER_GYM', gym }).then((res) => {
           if (!res.ok) console.error('[raid-notifier] could not report the discovered gym:', res.error);
