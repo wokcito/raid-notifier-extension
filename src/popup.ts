@@ -9,7 +9,8 @@ function el<T extends HTMLElement>(id: string): T {
 
 const loginForm = el<HTMLDivElement>('login-form');
 const loggedInView = el<HTMLDivElement>('logged-in');
-const accountEl = el<HTMLDivElement>('account');
+const accountEmailEl = el<HTMLSpanElement>('account-email');
+const accountPlanEl = el<HTMLSpanElement>('account-plan');
 const watchedListEl = el<HTMLUListElement>('watched-list');
 const watchedEmptyEl = el<HTMLDivElement>('watched-empty');
 const statusEl = el<HTMLDivElement>('status');
@@ -167,7 +168,9 @@ async function showLoggedIn(email: string): Promise<void> {
   loggedIn = true;
   loginForm.style.display = 'none';
   loggedInView.style.display = 'block';
-  accountEl.textContent = email;
+  accountEmailEl.textContent = email;
+  accountPlanEl.textContent = '';
+  accountPlanEl.className = '';
 
   const [watchedRes, accountRes] = await Promise.all([
     sendMessageSafe({ type: 'LIST_WATCHED' }),
@@ -181,6 +184,8 @@ async function showLoggedIn(email: string): Promise<void> {
   }
 
   if (accountRes.ok) {
+    accountPlanEl.textContent = accountRes.data.isPremium ? 'Premium' : 'Free';
+    accountPlanEl.className = accountRes.data.isPremium ? 'premium' : 'free';
     renderNotifications(accountRes.data.linkedChannels);
   }
 }

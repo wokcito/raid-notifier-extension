@@ -73,8 +73,33 @@
         display: none;
       }
       #account {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         color: #555;
         margin-bottom: 10px;
+      }
+      #account-email {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      #account-plan {
+        flex-shrink: 0;
+        padding: 2px 7px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+      }
+      #account-plan.free {
+        background: #e5e7eb;
+        color: #4b5563;
+      }
+      #account-plan.premium {
+        background: #fef3c7;
+        color: #92400e;
       }
       #watched-list {
         list-style: none;
@@ -228,7 +253,10 @@
     </div>
 
     <div id="logged-in">
-      <div id="account"></div>
+      <div id="account">
+        <span id="account-email"></span>
+        <span id="account-plan"></span>
+      </div>
       <strong>Gyms you're watching</strong>
       <ul id="watched-list"></ul>
       <div id="watched-empty" style="display: none">You're not watching any gyms yet.</div>
