@@ -14,5 +14,8 @@
     "@types/chrome": "0.2.6",
     "esbuild": "0.28.2",
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "qrcode-generator": "2.0.4"
   }
 }

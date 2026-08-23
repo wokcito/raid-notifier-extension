@@ -101,32 +101,70 @@
         color: #888;
         padding: 8px 0;
       }
-      #notifications {
-        margin: 12px 0;
-        padding: 10px;
-        border: 1px solid #eee;
-        border-radius: 6px;
+      #channels-list {
+        list-style: none;
+        margin: 0 0 10px;
+        padding: 0;
       }
-      #notifications strong {
-        display: block;
-        margin-bottom: 6px;
+      .channel {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
       }
-      #telegram-linked {
-        color: #16a34a;
+      .channel-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .channel-name {
+        font-weight: 600;
+      }
+      .channel-linked {
         display: none;
+        color: #16a34a;
+        font-size: 12px;
       }
-      #telegram-link-btn {
-        display: inline-block;
+      .channel-link-btn {
+        display: none;
         width: auto;
-        padding: 6px 10px;
+        padding: 3px 10px;
+        font-size: 12px;
+      }
+      .channel-actions {
+        display: none;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+      .channel-actions a,
+      .channel-actions button {
+        width: auto;
+        flex: 1 1 auto;
+        padding: 6px 8px;
         font-size: 12px;
         text-decoration: none;
         text-align: center;
-        background: #2563eb;
-        color: white;
         border-radius: 4px;
       }
-      #telegram-hint {
+      .channel-open-link {
+        background: #2563eb;
+        color: white;
+      }
+      .channel-copy-btn,
+      .channel-qr-btn {
+        background: #eee;
+        color: #1a1a1a;
+      }
+      .channel-qr {
+        display: none;
+        margin-top: 8px;
+        text-align: center;
+      }
+      .channel-qr svg {
+        width: 140px;
+        height: 140px;
+      }
+      .channel-hint {
         display: none;
         color: #888;
         font-size: 11px;
@@ -195,12 +233,23 @@
       <ul id="watched-list"></ul>
       <div id="watched-empty" style="display: none">You're not watching any gyms yet.</div>
 
-      <div id="notifications">
-        <strong>Notifications</strong>
-        <span id="telegram-linked">✅ Telegram linked</span>
-        <a id="telegram-link-btn" href="#" target="_blank" style="display: none">Link Telegram</a>
-        <div id="telegram-hint">After linking in Telegram, reopen this extension to confirm it.</div>
-      </div>
+      <strong>Notifications</strong>
+      <ul id="channels-list">
+        <li class="channel">
+          <div class="channel-row">
+            <span class="channel-name">Telegram</span>
+            <span id="telegram-linked" class="channel-linked">✅ Linked</span>
+            <button id="telegram-link-btn" class="channel-link-btn" type="button">Link</button>
+          </div>
+          <div id="telegram-actions" class="channel-actions">
+            <a id="telegram-open-link" class="channel-open-link" href="#" target="_blank">Open link</a>
+            <button id="telegram-copy-btn" class="channel-copy-btn" type="button">Copy link</button>
+            <button id="telegram-qr-btn" class="channel-qr-btn" type="button">Show QR code</button>
+          </div>
+          <div id="telegram-qr" class="channel-qr"></div>
+          <div id="telegram-hint" class="channel-hint">After linking in Telegram, reopen this extension to confirm it.</div>
+        </li>
+      </ul>
 
       <button id="logout">Log out</button>
     </div>

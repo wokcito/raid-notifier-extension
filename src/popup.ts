@@ -1,3 +1,4 @@
+import qrcode from 'qrcode-generator';
 import type { ExtensionRequest, NotificationChannel, RequestResponseMap, WatchedGymSummary } from './types';
 
 function el<T extends HTMLElement>(id: string): T {
@@ -13,7 +14,12 @@ const watchedListEl = el<HTMLUListElement>('watched-list');
 const watchedEmptyEl = el<HTMLDivElement>('watched-empty');
 const statusEl = el<HTMLDivElement>('status');
 const telegramLinkedEl = el<HTMLSpanElement>('telegram-linked');
-const telegramLinkBtnEl = el<HTMLAnchorElement>('telegram-link-btn');
+const telegramLinkBtnEl = el<HTMLButtonElement>('telegram-link-btn');
+const telegramActionsEl = el<HTMLDivElement>('telegram-actions');
+const telegramOpenLinkEl = el<HTMLAnchorElement>('telegram-open-link');
+const telegramCopyBtnEl = el<HTMLButtonElement>('telegram-copy-btn');
+const telegramQrBtnEl = el<HTMLButtonElement>('telegram-qr-btn');
+const telegramQrEl = el<HTMLDivElement>('telegram-qr');
 const telegramHintEl = el<HTMLDivElement>('telegram-hint');
 const loginBtnEl = el<HTMLButtonElement>('login');
 const versionEl = el<HTMLSpanElement>('version');
@@ -78,27 +84,65 @@ function renderWatchedList(gyms: WatchedGymSummary[]): void {
   }
 }
 
-async function renderNotifications(linkedChannels: NotificationChannel[]): Promise<void> {
+function renderNotifications(linkedChannels: NotificationChannel[]): void {
   const telegramLinked = linkedChannels.includes('TELEGRAM');
   telegramLinkedEl.style.display = telegramLinked ? 'inline' : 'none';
   telegramLinkBtnEl.style.display = telegramLinked ? 'none' : 'inline-block';
-  telegramHintEl.style.display = telegramLinked ? 'none' : 'block';
-
-  if (telegramLinked) return;
-
-  telegramLinkBtnEl.textContent = 'Link Telegram';
-  telegramLinkBtnEl.setAttribute('href', '#');
-  const res = await sendMessageSafe({ type: 'CREATE_TELEGRAM_LINK_CODE' });
-  if (res.ok && res.data?.deepLink) {
-    telegramLinkBtnEl.setAttribute('href', res.data.deepLink);
-  } else {
-    telegramLinkBtnEl.textContent = "Couldn't generate the link (see console)";
-    console.error('[raid-notifier]', !res.ok ? res.error : '(no deepLink)');
-  }
+  telegramActionsEl.style.display = 'none';
+  telegramQrEl.style.display = 'none';
+  telegramHintEl.style.display = 'none';
 }
 
-telegramLinkBtnEl.addEventListener('click', (e) => {
-  if (telegramLinkBtnEl.getAttribute('href') === '#') e.preventDefault();
+telegramLinkBtnEl.addEventListener('click', async () => {
+  telegramLinkBtnEl.disabled = true;
+  telegramLinkBtnEl.textContent = 'Linking…';
+  const res = await sendMessageSafe({ type: 'CREATE_TELEGRAM_LINK_CODE' });
+  if (res.ok && res.data?.deepLink) {
+    telegramOpenLinkEl.setAttribute('href', res.data.deepLink);
+    telegramLinkBtnEl.style.display = 'none';
+    telegramActionsEl.style.display = 'flex';
+    telegramHintEl.style.display = 'block';
+  } else {
+    console.error('[raid-notifier]', !res.ok ? res.error : '(no deepLink)');
+    setStatus("Couldn't generate the Telegram link. See the console for details.");
+    telegramLinkBtnEl.disabled = false;
+    telegramLinkBtnEl.textContent = 'Link';
+  }
+});
+
+telegramCopyBtnEl.addEventListener('click', async () => {
+  const link = telegramOpenLinkEl.getAttribute('href');
+  if (!link || link === '#') return;
+  try {
+    await navigator.clipboard.writeText(link);
+    const original = telegramCopyBtnEl.textContent;
+    telegramCopyBtnEl.textContent = 'Copied!';
+    setTimeout(() => {
+      telegramCopyBtnEl.textContent = original;
+    }, 1500);
+  } catch (e) {
+    console.error('[raid-notifier] could not copy the Telegram link:', e);
+  }
+});
+
+telegramQrBtnEl.addEventListener('click', () => {
+  const link = telegramOpenLinkEl.getAttribute('href');
+  if (!link || link === '#') return;
+  const showing = telegramQrEl.style.display !== 'none';
+  if (showing) {
+    telegramQrEl.style.display = 'none';
+    telegramQrBtnEl.textContent = 'Show QR code';
+    return;
+  }
+  if (telegramQrEl.dataset.renderedFor !== link) {
+    const qr = qrcode(0, 'M');
+    qr.addData(link);
+    qr.make();
+    telegramQrEl.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+    telegramQrEl.dataset.renderedFor = link;
+  }
+  telegramQrEl.style.display = 'block';
+  telegramQrBtnEl.textContent = 'Hide QR code';
 });
 
 let authMode: 'login' | 'signup' = 'login';
@@ -137,7 +181,7 @@ async function showLoggedIn(email: string): Promise<void> {
   }
 
   if (accountRes.ok) {
-    await renderNotifications(accountRes.data.linkedChannels);
+    renderNotifications(accountRes.data.linkedChannels);
   }
 }
 
