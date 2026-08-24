@@ -2,6 +2,8 @@ import { RAID_NOTIFIER_CONFIG } from './config';
 import type {
   AccountInfo,
   ApiResult,
+  BillingOrder,
+  BillingPackagesInfo,
   ExtensionRequest,
   Gym,
   Session,
@@ -62,9 +64,10 @@ async function refreshAccountInfo(): Promise<ApiResult<AccountInfo>> {
   const result = await apiFetch<Partial<AccountInfo>>('/user/me');
   if (!result.ok) return result;
   const isPremium = !!result.data?.isPremium;
+  const premiumUntil = result.data?.premiumUntil ?? null;
   const linkedChannels = Array.isArray(result.data?.linkedChannels) ? result.data.linkedChannels : [];
-  await chrome.storage.local.set({ isPremium, linkedChannels });
-  return { ok: true, data: { isPremium, linkedChannels } };
+  await chrome.storage.local.set({ isPremium, premiumUntil, linkedChannels });
+  return { ok: true, data: { isPremium, premiumUntil, linkedChannels } };
 }
 
 async function syncTimezone(): Promise<ApiResult<undefined>> {
@@ -155,6 +158,21 @@ async function checkForUpdate(): Promise<ApiResult<UpdateStatus>> {
   }
 }
 
+async function createBillingOrder(packageMonths: number, method: string): Promise<ApiResult<BillingOrder>> {
+  return apiFetch('/billing/orders', {
+    method: 'POST',
+    body: JSON.stringify({ packageMonths, method }),
+  });
+}
+
+async function getBillingOrder(orderId: number): Promise<ApiResult<BillingOrder>> {
+  return apiFetch(`/billing/orders/${orderId}`);
+}
+
+async function getBillingPackages(): Promise<ApiResult<BillingPackagesInfo>> {
+  return apiFetch('/billing/packages');
+}
+
 async function logout(): Promise<void> {
   await chrome.storage.local.remove(['session', 'watchedGymIds', 'isPremium', 'linkedChannels']);
   watchedGymIds = null;
@@ -229,6 +247,18 @@ chrome.runtime.onMessage.addListener((message: ExtensionRequest, _sender, sendRe
         }
         case 'CHECK_FOR_UPDATE': {
           sendResponse(await checkForUpdate());
+          break;
+        }
+        case 'CREATE_BILLING_ORDER': {
+          sendResponse(await createBillingOrder(message.packageMonths, message.method));
+          break;
+        }
+        case 'GET_BILLING_ORDER': {
+          sendResponse(await getBillingOrder(message.orderId));
+          break;
+        }
+        case 'GET_BILLING_PACKAGES': {
+          sendResponse(await getBillingPackages());
           break;
         }
         default: {

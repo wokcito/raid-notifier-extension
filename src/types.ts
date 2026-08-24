@@ -22,11 +22,43 @@ export type NotificationChannel = 'PUSH' | 'TELEGRAM' | 'WHATSAPP';
 
 export interface AccountInfo {
   isPremium: boolean;
+  premiumUntil: string | null;
   linkedChannels: NotificationChannel[];
 }
 
 export interface TelegramLinkCode {
   deepLink: string;
+}
+
+export type PackageMonths = number;
+
+export type PaymentMethod = string;
+
+export type PaymentOrderStatus = 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+
+export interface BillingOrder {
+  orderId: number;
+  status: PaymentOrderStatus;
+  expiresAt: string;
+  methodLabel: string;
+  payment: { kind: 'crypto'; address: string; expectedAmountSats: string } | null;
+}
+
+export interface BillingPackage {
+  months: PackageMonths;
+  priceUsdCents: number;
+  durationMs: number;
+}
+
+export interface BillingPaymentMethod {
+  method: PaymentMethod;
+  label: string;
+}
+
+export interface BillingPackagesInfo {
+  packages: BillingPackage[];
+  methods: BillingPaymentMethod[];
+  maxPremiumHorizonMs: number;
 }
 
 export interface UpdateStatus {
@@ -53,7 +85,10 @@ export type ExtensionRequest =
   | { type: 'WATCH_GYM'; gym: Gym }
   | { type: 'UNWATCH_GYM'; scopelyGymId: string }
   | { type: 'DISCOVER_GYM'; gym: Gym }
-  | { type: 'CHECK_FOR_UPDATE' };
+  | { type: 'CHECK_FOR_UPDATE' }
+  | { type: 'CREATE_BILLING_ORDER'; packageMonths: PackageMonths; method: PaymentMethod }
+  | { type: 'GET_BILLING_ORDER'; orderId: number }
+  | { type: 'GET_BILLING_PACKAGES' };
 
 export type RequestType = ExtensionRequest['type'];
 
@@ -77,4 +112,7 @@ export interface RequestResponseMap {
   UNWATCH_GYM: ApiResult<unknown>;
   DISCOVER_GYM: ApiResult<undefined>;
   CHECK_FOR_UPDATE: ApiResult<UpdateStatus>;
+  CREATE_BILLING_ORDER: ApiResult<BillingOrder>;
+  GET_BILLING_ORDER: ApiResult<BillingOrder>;
+  GET_BILLING_PACKAGES: ApiResult<BillingPackagesInfo>;
 }
