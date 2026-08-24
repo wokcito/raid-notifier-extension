@@ -9,6 +9,9 @@ Chrome extension that detects the gym you're viewing on `pokemongo.com/en/map` a
 - Log in / sign up (Supabase auth)
 - Link Telegram for notifications
 - Free tier watch limit indicator
+- Buy premium from the popup (currently Bitcoin Cash; more payment methods can be added without
+  extension changes, see "Backend API" below) -- shows a QR/address with the exact amount, and
+  survives closing the popup while a payment is in flight
 
 ## Setup
 
@@ -45,17 +48,20 @@ Chrome extension that detects the gym you're viewing on `pokemongo.com/en/map` a
 
 ## Backend API
 
-All requests below go to `API_BASE_URL` (from `.env`) with an `Authorization: Bearer <accessToken>` header, except auth which goes straight to Supabase. Called from `src/background.ts`.
+All requests below go to `API_BASE_URL` (from `.env`) with an `Authorization: Bearer <accessToken>` header, except auth which goes straight to Supabase. Called from `src/background.ts`. Types referenced below (`Gym`, `AccountInfo`, `BillingOrder`, etc.) are defined in `src/types.ts`.
 
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| GET | `/gyms/watched` | List the gyms the current user is watching |
-| POST | `/gyms/watch-by-scopely-id` | Watch a gym |
-| DELETE | `/gyms/watch-by-scopely-id/:scopelyGymId` | Unwatch a gym |
-| POST | `/gyms/discover-by-scopely-id` | Report a gym seen on the map (feeds the gym database, independent of watching) |
-| GET | `/user/me` | Get account info (`isPremium`, `linkedChannels`) |
-| PATCH | `/user/me` | Update the user's timezone (sent on every login/signup) |
-| POST | `/notifications/telegram/link-code` | Get a deep link to link a Telegram account |
+| Method | Endpoint | Sends | Receives | Purpose |
+| --- | --- | --- | --- | --- |
+| GET | `/gyms/watched` | Nothing (no body/params) | `WatchedGymSummary[]` — `{ scopelyGymId, name }` per gym | List the gyms the current user is watching |
+| POST | `/gyms/watch-by-scopely-id` | Body: `Gym` — `{ scopelyGymId, name, imageUrl, latitude, longitude }` | The created/updated gym record (not used by the extension beyond `ok`) | Watch a gym |
+| DELETE | `/gyms/watch-by-scopely-id/:scopelyGymId` | Path param `scopelyGymId`, no body | Nothing (204) | Unwatch a gym |
+| POST | `/gyms/discover-by-scopely-id` | Body: `Gym` (same shape as above) | Nothing (204) | Report a gym seen on the map (feeds the gym database, independent of watching) |
+| GET | `/user/me` | Nothing | `AccountInfo` — `{ isPremium, premiumUntil, linkedChannels }` (plus raw user fields the extension ignores) | Get account info |
+| PATCH | `/user/me` | Body: `{ timezone: string }` (IANA name, e.g. `America/Argentina/Buenos_Aires`) — sent on every login/signup | Nothing (204) | Update the user's timezone |
+| POST | `/notifications/telegram/link-code` | Nothing | `TelegramLinkCode` — `{ deepLink: string }` | Get a deep link to link a Telegram account |
+| GET | `/billing/packages` | Nothing | `BillingPackagesInfo` — `{ packages: { months, priceUsdCents, durationMs }[], methods: { method, label }[], maxPremiumHorizonMs }` | List available premium packages and payment methods -- drives the popup's package buttons and method selector, nothing is hardcoded client-side |
+| POST | `/billing/orders` | Body: `{ packageMonths: number, method: string }` | `BillingOrder` — `{ orderId, status, expiresAt, methodLabel, payment: { kind: 'crypto', address, expectedAmountSats } \| null }` | Create a premium order for a package + method; `payment` carries the address + exact amount to pay for crypto methods |
+| GET | `/billing/orders/:id` | Path param `id`, no body | `BillingOrder` (same shape as above) | Poll an order's status (`PENDING`/`PAID`/`EXPIRED`/`CANCELLED`) |
 
 ### Supabase Auth
 
