@@ -17,6 +17,7 @@ function el<T extends HTMLElement>(id: string): T {
   return found as T;
 }
 
+const loadingEl = el<HTMLDivElement>('loading');
 const loginForm = el<HTMLDivElement>('login-form');
 const loggedInView = el<HTMLDivElement>('logged-in');
 const accountEmailEl = el<HTMLSpanElement>('account-email');
@@ -446,8 +447,9 @@ let loggedIn = false;
 
 async function showLoggedIn(email: string): Promise<void> {
   loggedIn = true;
+  loadingEl.style.display = 'flex';
   loginForm.style.display = 'none';
-  loggedInView.style.display = 'block';
+  loggedInView.style.display = 'none';
   accountEmailEl.textContent = email;
   accountPlanEl.textContent = '';
   accountPlanEl.className = '';
@@ -470,10 +472,14 @@ async function showLoggedIn(email: string): Promise<void> {
   }
 
   await resumePendingOrder();
+
+  loadingEl.style.display = 'none';
+  loggedInView.style.display = 'block';
 }
 
 function showLoggedOut(): void {
   loggedIn = false;
+  loadingEl.style.display = 'none';
   loginForm.style.display = 'block';
   loggedInView.style.display = 'none';
   authMode = 'login';

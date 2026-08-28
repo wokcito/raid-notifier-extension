@@ -69,8 +69,27 @@
         white-space: pre-wrap;
         color: #b91c1c;
       }
+      #login-form,
       #logged-in {
         display: none;
+      }
+      #loading {
+        display: flex;
+        justify-content: center;
+        padding: 30px 0;
+      }
+      .spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid #e5e7eb;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
       }
       #account {
         display: flex;
@@ -301,6 +320,8 @@
     <h1><img src="icons/icon32.png" alt="" /> Raid Notifier <span id="version"></span></h1>
 
     <div id="update-banner"></div>
+
+    <div id="loading"><div class="spinner"></div></div>
 
     <div id="login-form">
       <label for="email">Email</label>
