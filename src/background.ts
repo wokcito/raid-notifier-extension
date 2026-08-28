@@ -26,8 +26,50 @@ async function getSession(): Promise<Session | null> {
   return (session as Session | undefined) ?? null;
 }
 
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<ApiResult<T>> {
+const SESSION_REFRESH_BUFFER_MS = 60 * 1000;
+
+let refreshPromise: Promise<Session | null> | null = null;
+
+async function refreshAccessToken(session: Session): Promise<Session | null> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({ refresh_token: session.refreshToken }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.access_token) return null;
+      const refreshed: Session = {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token ?? session.refreshToken,
+        expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
+        email: session.email,
+      };
+      await chrome.storage.local.set({ session: refreshed });
+      return refreshed;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+  return refreshPromise;
+}
+
+async function getValidSession(): Promise<Session | null> {
   const session = await getSession();
+  if (!session) return null;
+  if (Date.now() < session.expiresAt - SESSION_REFRESH_BUFFER_MS) return session;
+  const refreshed = await refreshAccessToken(session);
+  if (refreshed) return refreshed;
+  await logout();
+  return null;
+}
+
+async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<ApiResult<T>> {
+  const session = await getValidSession();
   if (!session) {
     return { ok: false, error: 'No session found. Open the extension and log in first.' };
   }
@@ -40,6 +82,10 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<Api
         ...options.headers,
       },
     });
+    if (res.status === 401) {
+      await logout();
+      return { ok: false, error: 'Your session expired. Log in again.' };
+    }
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       return { ok: false, error: `${res.status} ${res.statusText}: ${text.slice(0, 200)}` };

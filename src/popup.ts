@@ -533,6 +533,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
   });
 });
 
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || !('session' in changes) || changes.session.newValue || !loggedIn) return;
+  showLoggedOut();
+});
+
 (async () => {
   const res = await sendMessageSafe({ type: 'GET_SESSION' });
   if (res.ok && res.session) {
