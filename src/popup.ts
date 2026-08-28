@@ -18,7 +18,7 @@ function el<T extends HTMLElement>(id: string): T {
 }
 
 const loadingEl = el<HTMLDivElement>('loading');
-const loginForm = el<HTMLDivElement>('login-form');
+const loginForm = el<HTMLFormElement>('login-form');
 const loggedInView = el<HTMLDivElement>('logged-in');
 const accountEmailEl = el<HTMLSpanElement>('account-email');
 const accountPlanEl = el<HTMLSpanElement>('account-plan');
@@ -489,7 +489,8 @@ function showLoggedOut(): void {
   setPackageButtonsDisabled(false);
 }
 
-loginBtnEl.addEventListener('click', async () => {
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
   const email = emailInputEl.value.trim();
   const password = passwordInputEl.value;
   if (!email || !password) {
