@@ -15,7 +15,9 @@ Chrome extension that detects the gym you're viewing on `pokemongo.com/en/map` a
 
 ## Installation
 
-No need to build anything — grab the pre-built extension from the [latest release](https://github.com/wokcito/raid-notifier-extension/releases/latest):
+Get it from the [Chrome Web Store](https://chromewebstore.google.com/detail/raid-notifier/fjgjgilhojlaclfhfjicjjeieapoehmh).
+
+### Manual install (from a release zip)
 
 1. Open the [latest release](https://github.com/wokcito/raid-notifier-extension/releases/latest) page and download the `.zip` file under **Assets**.
 2. Unzip it — you should get a folder with `manifest.json`, `background.js`, etc.
