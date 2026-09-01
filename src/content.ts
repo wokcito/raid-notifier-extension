@@ -16,6 +16,7 @@ declare global {
   const SOURCE = 'raid-notifier-hook';
 
   const FREE_TIER_WATCH_LIMIT = 3;
+  const PREMIUM_TIER_WATCH_LIMIT = 50;
 
   function hasLocation(gym: Gym): boolean {
     return typeof gym.latitude === 'number' && typeof gym.longitude === 'number';
@@ -64,6 +65,10 @@ declare global {
     renderButton();
   });
 
+  function currentWatchLimit(): number {
+    return isPremium ? PREMIUM_TIER_WATCH_LIMIT : FREE_TIER_WATCH_LIMIT;
+  }
+
   let watchedSet = new Set<string>();
 
   chrome.storage.local
@@ -104,11 +109,12 @@ declare global {
       return;
     }
     const watched = watchedSet.has(currentGym.scopelyGymId);
-    if (isPremium === false && !watched && watchedSet.size >= FREE_TIER_WATCH_LIMIT) {
+    const limit = currentWatchLimit();
+    if (isPremium !== null && !watched && watchedSet.size >= limit) {
       btn.disabled = true;
       btn.style.opacity = '0.5';
       btn.style.cursor = 'not-allowed';
-      btn.textContent = `Free limit (${FREE_TIER_WATCH_LIMIT}) reached`;
+      btn.textContent = `Limit (${limit}) reached`;
       btn.style.background = '#4b5563';
       return;
     }
@@ -209,7 +215,7 @@ declare global {
     if (!hasLocation(currentGym)) return;
     const gym = currentGym;
     const wasWatched = watchedSet.has(gym.scopelyGymId);
-    if (isPremium === false && !wasWatched && watchedSet.size >= FREE_TIER_WATCH_LIMIT) return;
+    if (isPremium !== null && !wasWatched && watchedSet.size >= currentWatchLimit()) return;
     pendingGymId = gym.scopelyGymId;
     renderButton();
 
