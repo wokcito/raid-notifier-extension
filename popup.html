@@ -251,60 +251,6 @@
         margin: 14px 0 8px;
         font-size: 13px;
       }
-      #premium-method-row {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-bottom: 8px;
-        font-size: 12px;
-        color: #555;
-      }
-      #premium-method-select {
-        width: auto;
-        flex: 1 1 auto;
-        padding: 5px 6px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 12px;
-        background: white;
-        color: #1a1a1a;
-      }
-      #premium-packages {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-bottom: 4px;
-      }
-      #premium-packages button {
-        flex: 1 1 calc(50% - 3px);
-        padding: 8px 4px;
-        font-size: 12px;
-      }
-      #premium-cap-hint {
-        margin-top: 0;
-        margin-bottom: 10px;
-      }
-      #premium-order {
-        margin-bottom: 10px;
-        padding: 8px;
-        background: #f9fafb;
-        border-radius: 6px;
-      }
-      #premium-order-method {
-        color: #888;
-        font-size: 11px;
-        margin-bottom: 2px;
-      }
-      #premium-order-status {
-        font-weight: 600;
-        margin-bottom: 4px;
-      }
-      #premium-order-amount {
-        font-family: monospace;
-        font-size: 12px;
-        word-break: break-all;
-        margin-bottom: 6px;
-      }
       #footer {
         margin-top: 12px;
         text-align: center;
@@ -337,25 +283,6 @@
         <span id="account-email"></span>
         <span id="account-plan"></span>
       </div>
-      <strong class="section-title">Premium</strong>
-      <div id="premium-method-row">
-        <label for="premium-method-select">Pay with</label>
-        <select id="premium-method-select"></select>
-      </div>
-      <div id="premium-packages"></div>
-      <div id="premium-cap-hint" class="channel-hint" style="display: none"></div>
-      <div id="premium-order" style="display: none">
-        <div id="premium-order-method"></div>
-        <div id="premium-order-status"></div>
-        <div id="premium-order-amount"></div>
-        <div class="channel-actions" id="premium-order-actions">
-          <button id="premium-copy-btn" class="channel-copy-btn" type="button">Copy address</button>
-          <button id="premium-qr-btn" class="channel-qr-btn" type="button">Show QR code</button>
-        </div>
-        <div id="premium-qr" class="channel-qr"></div>
-        <div id="premium-expiry" class="channel-hint"></div>
-      </div>
-
       <strong class="section-title">Gyms you're watching</strong>
       <ul id="watched-list"></ul>
       <div id="watched-empty" style="display: none">You're not watching any gyms yet.</div>

@@ -1,12 +1,8 @@
 import qrcode from 'qrcode-generator';
 import type {
   AccountInfo,
-  BillingOrder,
-  BillingPackage,
-  BillingPaymentMethod,
   ExtensionRequest,
   NotificationChannel,
-  PackageMonths,
   RequestResponseMap,
   WatchedGymSummary,
 } from './types';
@@ -33,18 +29,6 @@ const telegramCopyBtnEl = el<HTMLButtonElement>('telegram-copy-btn');
 const telegramQrBtnEl = el<HTMLButtonElement>('telegram-qr-btn');
 const telegramQrEl = el<HTMLDivElement>('telegram-qr');
 const telegramHintEl = el<HTMLDivElement>('telegram-hint');
-const premiumMethodSelectEl = el<HTMLSelectElement>('premium-method-select');
-const premiumPackagesEl = el<HTMLDivElement>('premium-packages');
-const premiumCapHintEl = el<HTMLDivElement>('premium-cap-hint');
-const premiumOrderEl = el<HTMLDivElement>('premium-order');
-const premiumOrderMethodEl = el<HTMLDivElement>('premium-order-method');
-const premiumOrderStatusEl = el<HTMLDivElement>('premium-order-status');
-const premiumOrderAmountEl = el<HTMLDivElement>('premium-order-amount');
-const premiumOrderActionsEl = el<HTMLDivElement>('premium-order-actions');
-const premiumCopyBtnEl = el<HTMLButtonElement>('premium-copy-btn');
-const premiumQrBtnEl = el<HTMLButtonElement>('premium-qr-btn');
-const premiumQrEl = el<HTMLDivElement>('premium-qr');
-const premiumExpiryEl = el<HTMLDivElement>('premium-expiry');
 const loginBtnEl = el<HTMLButtonElement>('login');
 const versionEl = el<HTMLSpanElement>('version');
 versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
@@ -112,10 +96,6 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString();
-}
-
 function renderAccountPlan(info: AccountInfo): void {
   if (info.isPremium && info.premiumUntil) {
     accountPlanEl.textContent = `Premium · until ${formatDate(info.premiumUntil)}`;
@@ -123,248 +103,7 @@ function renderAccountPlan(info: AccountInfo): void {
     accountPlanEl.textContent = info.isPremium ? 'Premium' : 'Free';
   }
   accountPlanEl.className = info.isPremium ? 'premium' : 'free';
-  lastPremiumUntil = info.premiumUntil;
-  updatePackageAvailability();
 }
-
-let billingPackages: BillingPackage[] = [];
-let maxPremiumHorizonMs = 0;
-let lastPremiumUntil: string | null = null;
-
-function getPackageButtons(): HTMLButtonElement[] {
-  return Array.from(premiumPackagesEl.querySelectorAll<HTMLButtonElement>('.package-btn'));
-}
-
-function formatUsd(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
-function renderMethodOptions(methods: BillingPaymentMethod[]): void {
-  const previousValue = premiumMethodSelectEl.value;
-  premiumMethodSelectEl.innerHTML = '';
-  for (const m of methods) {
-    const option = document.createElement('option');
-    option.value = m.method;
-    option.textContent = m.label;
-    premiumMethodSelectEl.appendChild(option);
-  }
-  if (methods.some((m) => m.method === previousValue)) {
-    premiumMethodSelectEl.value = previousValue;
-  }
-}
-
-function renderPackageButtons(packages: BillingPackage[]): void {
-  premiumPackagesEl.innerHTML = '';
-  for (const pkg of packages) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'package-btn';
-    btn.dataset.months = String(pkg.months);
-    btn.textContent = `${pkg.months === 1 ? '1 month' : `${pkg.months} months`} · ${formatUsd(pkg.priceUsdCents)}`;
-    btn.addEventListener('click', () => handlePackageClick(pkg.months));
-    premiumPackagesEl.appendChild(btn);
-  }
-}
-
-async function loadBillingPackages(): Promise<void> {
-  const res = await sendMessageSafe({ type: 'GET_BILLING_PACKAGES' });
-  if (!res.ok) return;
-  billingPackages = res.data.packages;
-  maxPremiumHorizonMs = res.data.maxPremiumHorizonMs;
-  renderMethodOptions(res.data.methods);
-  renderPackageButtons(billingPackages);
-  updatePackageAvailability();
-}
-
-function updatePackageAvailability(): void {
-  if (billingPackages.length === 0) return;
-  const now = Date.now();
-  const until = lastPremiumUntil ? new Date(lastPremiumUntil).getTime() : 0;
-  const base = until > now ? until : now;
-  let anyDisabled = false;
-
-  for (const btn of getPackageButtons()) {
-    const months = Number(btn.dataset.months);
-    const pkg = billingPackages.find((p) => p.months === months);
-    if (!pkg) continue;
-    const exceeds = base + pkg.durationMs - now > maxPremiumHorizonMs;
-    btn.disabled = exceeds;
-    btn.title = exceeds ? "This would push your premium past next year's date." : '';
-    if (exceeds) anyDisabled = true;
-  }
-
-  premiumCapHintEl.style.display = anyDisabled ? 'block' : 'none';
-  premiumCapHintEl.textContent = anyDisabled
-    ? "Some packages are disabled: they'd push your premium more than a year out."
-    : '';
-}
-
-function satsToBchString(sats: string): string {
-  const padded = sats.padStart(9, '0');
-  const whole = padded.slice(0, -8) || '0';
-  const frac = padded.slice(-8).replace(/0+$/, '');
-  return frac ? `${whole}.${frac}` : whole;
-}
-
-const BILLING_POLL_INTERVAL_MS = 10_000;
-let billingPollTimer: ReturnType<typeof setInterval> | null = null;
-
-function stopBillingPoll(): void {
-  if (billingPollTimer) {
-    clearInterval(billingPollTimer);
-    billingPollTimer = null;
-  }
-}
-
-function setPackageButtonsDisabled(disabled: boolean): void {
-  for (const btn of getPackageButtons()) btn.disabled = disabled;
-}
-
-let currentPaymentUri: string | null = null;
-let currentPaymentAddress: string | null = null;
-
-function renderBillingOrder(order: BillingOrder): void {
-  premiumOrderEl.style.display = 'block';
-  premiumOrderMethodEl.textContent = `Paying with ${order.methodLabel}`;
-
-  if (!order.payment) {
-    premiumOrderStatusEl.textContent = `Order status: ${order.status}`;
-    premiumOrderAmountEl.textContent = '';
-    premiumOrderActionsEl.style.display = 'none';
-    premiumExpiryEl.style.display = 'none';
-    currentPaymentUri = null;
-    currentPaymentAddress = null;
-    return;
-  }
-
-  const bchAmount = satsToBchString(order.payment.expectedAmountSats);
-  const uri = `${order.payment.address}?amount=${bchAmount}`;
-  currentPaymentUri = uri;
-  currentPaymentAddress = order.payment.address;
-  premiumOrderAmountEl.textContent = `${order.payment.address}\n${bchAmount} BCH`;
-  premiumOrderActionsEl.style.display = 'flex';
-
-  if (premiumQrEl.dataset.renderedFor !== uri) {
-    premiumQrEl.style.display = 'none';
-    premiumQrEl.dataset.renderedFor = '';
-    premiumQrBtnEl.textContent = 'Show QR code';
-  }
-
-  if (order.status === 'PENDING') {
-    premiumOrderStatusEl.textContent = '⏳ Waiting for payment…';
-    premiumExpiryEl.style.display = 'block';
-    premiumExpiryEl.textContent = `Quote expires at ${formatDateTime(order.expiresAt)}. Send the exact amount shown above.`;
-  } else if (order.status === 'PAID') {
-    premiumOrderStatusEl.textContent = '✅ Payment received! Premium is active.';
-    premiumExpiryEl.style.display = 'none';
-  } else if (order.status === 'EXPIRED') {
-    premiumOrderStatusEl.textContent = '⌛ This quote expired without payment. Start a new one below.';
-    premiumExpiryEl.style.display = 'none';
-  } else {
-    premiumOrderStatusEl.textContent = order.status;
-    premiumExpiryEl.style.display = 'none';
-  }
-}
-
-const PENDING_ORDER_STORAGE_KEY = 'pendingBillingOrderId';
-
-function rememberPendingOrder(orderId: number): Promise<void> {
-  return chrome.storage.local.set({ [PENDING_ORDER_STORAGE_KEY]: orderId });
-}
-
-function forgetPendingOrder(): Promise<void> {
-  return chrome.storage.local.remove(PENDING_ORDER_STORAGE_KEY);
-}
-
-async function resumePendingOrder(): Promise<void> {
-  const stored = await chrome.storage.local.get(PENDING_ORDER_STORAGE_KEY);
-  const orderId = stored[PENDING_ORDER_STORAGE_KEY];
-  if (typeof orderId !== 'number') return;
-
-  const res = await sendMessageSafe({ type: 'GET_BILLING_ORDER', orderId });
-  if (!res.ok) {
-    await forgetPendingOrder();
-    return;
-  }
-
-  renderBillingOrder(res.data);
-  if (res.data.status === 'PENDING') {
-    setPackageButtonsDisabled(true);
-    pollBillingOrder(orderId);
-  } else {
-    await forgetPendingOrder();
-  }
-}
-
-function pollBillingOrder(orderId: number): void {
-  stopBillingPoll();
-  billingPollTimer = setInterval(async () => {
-    const res = await sendMessageSafe({ type: 'GET_BILLING_ORDER', orderId });
-    if (!res.ok) return;
-    renderBillingOrder(res.data);
-    if (res.data.status !== 'PENDING') {
-      stopBillingPoll();
-      updatePackageAvailability();
-      await forgetPendingOrder();
-      if (res.data.status === 'PAID') {
-        const accountRes = await sendMessageSafe({ type: 'GET_ACCOUNT_INFO' });
-        if (accountRes.ok) renderAccountPlan(accountRes.data);
-      }
-    }
-  }, BILLING_POLL_INTERVAL_MS);
-}
-
-async function handlePackageClick(months: PackageMonths): Promise<void> {
-  setPackageButtonsDisabled(true);
-  setStatus('');
-  const res = await sendMessageSafe({
-    type: 'CREATE_BILLING_ORDER',
-    packageMonths: months,
-    method: premiumMethodSelectEl.value,
-  });
-  if (!res.ok) {
-    setStatus(res.error);
-    updatePackageAvailability();
-    return;
-  }
-  renderBillingOrder(res.data);
-  await rememberPendingOrder(res.data.orderId);
-  pollBillingOrder(res.data.orderId);
-}
-
-premiumCopyBtnEl.addEventListener('click', async () => {
-  if (!currentPaymentAddress) return;
-  try {
-    await navigator.clipboard.writeText(currentPaymentAddress);
-    const original = premiumCopyBtnEl.textContent;
-    premiumCopyBtnEl.textContent = 'Copied!';
-    setTimeout(() => {
-      premiumCopyBtnEl.textContent = original;
-    }, 1500);
-  } catch (e) {
-    console.error('[raid-notifier] could not copy the BCH address:', e);
-  }
-});
-
-premiumQrBtnEl.addEventListener('click', () => {
-  const uri = currentPaymentUri;
-  if (!uri) return;
-  const showing = premiumQrEl.style.display !== 'none';
-  if (showing) {
-    premiumQrEl.style.display = 'none';
-    premiumQrBtnEl.textContent = 'Show QR code';
-    return;
-  }
-  if (premiumQrEl.dataset.renderedFor !== uri) {
-    const qr = qrcode(0, 'M');
-    qr.addData(uri);
-    qr.make();
-    premiumQrEl.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
-    premiumQrEl.dataset.renderedFor = uri;
-  }
-  premiumQrEl.style.display = 'block';
-  premiumQrBtnEl.textContent = 'Hide QR code';
-});
 
 function renderNotifications(linkedChannels: NotificationChannel[]): void {
   const telegramLinked = linkedChannels.includes('TELEGRAM');
@@ -457,7 +196,6 @@ async function showLoggedIn(email: string): Promise<void> {
   const [watchedRes, accountRes] = await Promise.all([
     sendMessageSafe({ type: 'LIST_WATCHED' }),
     sendMessageSafe({ type: 'GET_ACCOUNT_INFO' }),
-    loadBillingPackages(),
   ]);
 
   if (watchedRes.ok) {
@@ -471,8 +209,6 @@ async function showLoggedIn(email: string): Promise<void> {
     renderNotifications(accountRes.data.linkedChannels);
   }
 
-  await resumePendingOrder();
-
   loadingEl.style.display = 'none';
   loggedInView.style.display = 'block';
 }
@@ -484,9 +220,6 @@ function showLoggedOut(): void {
   loggedInView.style.display = 'none';
   authMode = 'login';
   updateAuthModeUI();
-  stopBillingPoll();
-  premiumOrderEl.style.display = 'none';
-  setPackageButtonsDisabled(false);
 }
 
 loginForm.addEventListener('submit', async (e) => {
@@ -528,7 +261,6 @@ loginForm.addEventListener('submit', async (e) => {
 
 el<HTMLButtonElement>('logout').addEventListener('click', async () => {
   await sendMessageSafe({ type: 'LOGOUT' });
-  await forgetPendingOrder();
   setStatus('');
   showLoggedOut();
 });
